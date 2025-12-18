@@ -6,13 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"fyne.io/fyne/v2"
 	"go.bug.st/serial"
 )
 
 const (
 	//AdtIDNCmd Command = "*IDN?"
-	AdtValCmd Command = "255:R:MRMD"
+	AdtValCmd Command = "255:R:MRMD:1"
 )
 
 var Additelmode = &serial.Mode{
@@ -20,6 +19,13 @@ var Additelmode = &serial.Mode{
 	DataBits: 8,
 	Parity:   serial.NoParity,
 	StopBits: serial.TwoStopBits,
+}
+
+var OneStopBitMode = &serial.Mode{
+	BaudRate: 9600,
+	DataBits: 8,
+	Parity:   serial.NoParity,
+	StopBits: serial.OneStopBit,
 }
 
 var additelRegex = regexp.MustCompile(`(\d+\.\d+)`)
@@ -33,7 +39,7 @@ func NewAdditel() *Additel {
 	return &Additel{}
 }
 
-func (a *Additel) GetResult() (string, error) {
+func (a *Additel) GetResult(log func(int, string)) (string, error) {
 	err := writeCmd(a.Port, AdtValCmd)
 	if err != nil {
 		return "", fmt.Errorf("błąd wysyłania komendy do urządzenia: %w", err)
@@ -42,7 +48,10 @@ func (a *Additel) GetResult() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("błąd odczytu z urządzenia: %w", err)
 	}
+	if value == "" {
 
+	}
+	log(0, fmt.Sprintf("Odczytana wartość z urządzenia: %s", value))
 	result := additelRegex.FindString(value)
 	return result, nil
 }
@@ -56,36 +65,39 @@ func (a *Additel) Connect(log func(int, string)) error {
 		return fmt.Errorf("nie znaleziono portów szeregowych")
 	}
 
-	for _, p := range ports {
-		port, err := serial.Open(p, Additelmode)
-		if err != nil {
-			continue
-		}
-		if err := port.SetReadTimeout(2 * time.Second); err != nil {
-			return fmt.Errorf("set timeout: %v", err)
-		}
-		fyne.Do(func() {log(0, "wysłano komendę: "+string(AdtValCmd))})
-		err = writeCmd(port, AdtValCmd)
-		if err != nil {
-			fyne.Do(func() {log(1, "błąd wysyłania komendy do urządzenia: "+err.Error())})
-			port.Close()
-			continue
-		}
-
-		response, err := readValWithTimeout(port, 1 * time.Second)
-		if err != nil {
-			fyne.Do(func() {log(1, "próba odczytana odpowiedzi zwróciła błąd: "+err.Error()+". Zwrócona odpowiedź: "+response)})
-			port.Close()
-			continue
-		}
-		fyne.Do(func() {log(0, "odczytano z portu: "+response)})
-		if checkCorrectIDNResponse(response) {
-			a.Port = port
-			return nil
-		}
-		port.Close()
+	modes := map[string]*serial.Mode{
+		"dwa bity stopu": Additelmode,
+		"jeden biy stopu": OneStopBitMode,
 	}
+	for _, p := range ports {
+		for key, mode := range modes {
+			log(0, "Próļa połączenia dla: "+key)
+			port, err := serial.Open(p, mode)
+			if err != nil {
+				continue
+			}
+			log(0, "wysłano komendę: "+string(AdtValCmd))
+			err = writeCmd(port, AdtValCmd)
+			if err != nil {
+				log(1, "błąd wysyłania komendy do urządzenia: "+err.Error())
+				port.Close()
+				continue
+			}
 
+			response, err := readValWithTimeout(port, 2 * time.Second)
+			if err != nil {
+				log(1, "próba odczytana odpowiedzi zwróciła błąd: "+err.Error()+". Zwrócona odpowiedź: "+response)
+				port.Close()
+				continue
+			}
+			log(0, "odczytano z portu: "+response)
+			if checkCorrectIDNResponse(response) {
+				a.Port = port
+				return nil
+			}
+			port.Close()
+		}
+	}
 	return fmt.Errorf("nie znaleziono additel na podanych portach")
 }
 

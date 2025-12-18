@@ -31,7 +31,7 @@ func NewFluke() *Fluke {
 	return &Fluke{}
 }
 
-func (f *Fluke) GetResult() (string, error) {
+func (f *Fluke) GetResult(log func(int, string)) (string, error) {
 	err := writeCmd(f.Port, FlukeValCmd)
     if err != nil {
         return "", fmt.Errorf("błąd wysyłania komendy do urządzenia: %w", err)
@@ -41,7 +41,7 @@ func (f *Fluke) GetResult() (string, error) {
     if err != nil {
         return "",fmt.Errorf("błąd odczytu z urządzenia: %w", err)
     }
-	
+	log(0, fmt.Sprintf("Odczytana wartość z urządzenia: %s", value))
 	result := flukeRegex.ReplaceAllString(value, "")
 	return result, nil
 }
@@ -57,10 +57,6 @@ func (f *Fluke) Connect() error {
 	for _, p := range ports {
 		port, err := serial.Open(p, flukemode)
 		if err != nil {
-			continue
-		}
-		if err := port.SetReadTimeout(1 * time.Second); err != nil {
-			port.Close()
 			continue
 		}
 		err = writeCmd(port, FlukeIDNCmd)

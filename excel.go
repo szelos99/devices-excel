@@ -12,7 +12,7 @@ import (
 type WritableData struct {
 	Value     string
 	Direction Direction
-	Jump      Jump
+	Step      Step
 }
 
 // ExcelApp holds the COM connection to Excel
@@ -35,11 +35,11 @@ func RunExcelWriter(log func(LogLevel, string), writeChan <-chan WritableData, c
 	for {
 		select {
 		case writeVar := <-writeChan:
-			err := e.WriteAndMove(writeVar.Value, writeVar.Direction, writeVar.Jump)
+			err := e.WriteAndMove(writeVar.Value, writeVar.Direction, writeVar.Step)
 			if err != nil {
 				fyne.Do(func() { log(ERROR, "Błąd zapisu do Excela: "+err.Error()) })
 			}
-			fyne.Do(func() { log(INFO, "Zapisano do excela") })
+			fyne.Do(func() { log(INFO, "Zapisano do excela warosść:"+writeVar.Value) })
 		case <-closeChan:
 			e.Close()
 			return
@@ -155,7 +155,7 @@ func (e *ExcelApp) MoveSelection(rowOffset, colOffset int) error {
 	return nil
 }
 
-func (e *ExcelApp) WriteAndMove(value string, direction Direction, jump Jump) error {
+func (e *ExcelApp) WriteAndMove(value string, direction Direction, step Step) error {
 	_, err := e.WriteToSelectedCell(value)
 	if err != nil {
 		return err
@@ -163,9 +163,9 @@ func (e *ExcelApp) WriteAndMove(value string, direction Direction, jump Jump) er
 
 	switch direction {
 	case DirectionUp:
-		err = e.MoveSelection(-1*int(jump), 0)
+		err = e.MoveSelection(-1*int(step), 0)
 	case DirectionDown:
-		err = e.MoveSelection(1*int(jump), 0)
+		err = e.MoveSelection(1*int(step), 0)
 	default:
 		err = nil
 	}

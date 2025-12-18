@@ -7,17 +7,26 @@ const (
 	ERROR
 )
 
+type Device int
+type Direction int
+type Step int
+
+const (
+	DeviceNone Device = iota
+	Fluke
+	Additel
+)
+
 const (
 	DirectionNone Direction = iota
 	DirectionUp
 	DirectionDown
 )
 
-type Command string
-
 const (
-	FlukeIDNCmd Command = "*IDN?"
-	FlukeValCmd Command = "VAL?"
-	ADTIDNCmd   Command = "255:R:OTYPE:1"
-	ADTValCmd   Command = "255:R:MRMD:1"
+	StepNone Step = iota
+	Step1
+	Step2
 )
+
+type Command string

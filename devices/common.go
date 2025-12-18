@@ -20,8 +20,8 @@ func writeCmd(port serial.Port, cmd Command) error {
 
 func readValWithTimeout(port serial.Port, timeout time.Duration) (string, error) {
 	reader := bufio.NewReader(port)
-	resultChan := make(chan string, 1)
-	errChan := make(chan error, 1)
+	resultChan := make(chan string)
+	errChan := make(chan error)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
