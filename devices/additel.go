@@ -95,7 +95,9 @@ func (a *Additel) Connect(log func(int, string)) error {
 				a.Port = port
 				return nil
 			}
-			log(0, "nie rozpoznano additela")
+			if response != "" {
+				log(0, "nie rozpoznano additela")
+			}
 			port.Close()
 		}
 	}
