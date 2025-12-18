@@ -104,30 +104,6 @@ func (e *ExcelApp) WriteToSelectedCell(value string) (string, error) {
 	return address, nil
 }
 
-// MoveSelection moves the active cell by rowOffset (+1 down, -1 up) and colOffset
-func (e *ExcelApp) MoveSelectionv1(rowOffset, colOffset int) error {
-	selectionVar, err := oleutil.GetProperty(e.App, "Selection")
-	if err != nil {
-		return err
-	}
-	defer selectionVar.Clear()
-
-	selection := selectionVar.ToIDispatch()
-	defer selection.Release()
-
-	nextVar, err := oleutil.CallMethod(selection, "Offset", rowOffset, colOffset)
-	if err != nil {
-		return err
-	}
-	defer nextVar.Clear()
-
-	next := nextVar.ToIDispatch()
-	defer next.Release()
-
-	_, err = oleutil.CallMethod(next, "Select")
-	return err
-}
-
 func (e *ExcelApp) MoveSelection(rowOffset, colOffset int) error {
 	selectionVar, err := oleutil.GetProperty(e.App, "Selection")
 	if err != nil {
